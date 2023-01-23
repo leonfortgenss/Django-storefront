@@ -1,0 +1,1173 @@
+DJANGO COURSE PART 3
+
+Uploading files
+Sedning emails
+Runnings background teasks Automated testing
+Performance testing
+Caching and much more
+
+Setting Up the Project
+
+Silimar to previous projects, opening the file we got provided, installing dependecies, selecting interpreter.
+Only difference is the managment/commands folder which provides a custom command for us to populate our db
+
+Then created a superuser
+
+Uploading Files:
+
+RESTful api that clients can use to upload images.
+
+Managind Media Files:
+
+When having a media folder it usually refers to user uploaded files
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('playground/', include('playground.urls')),
+    path('store/', include('store.urls')),
+    path('auth/', include('djoser.urls')),
+    path('auth/', include('djoser.urls.jwt')),
+    path('__debug__/', include(debug_toolbar.urls)),
+] 
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+Adding Images to products:
+
+Add a one to many relationship between product and a new model called product image
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name= 'images')
+    image = models.ImageField(upload_to='store/images')
+
+Building API to upload Images:
+
+As always first build the serializer
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
+
+Then the viewset
+
+class ProductImageViewSet(ModelViewSet):
+    serializer_class = ProductImageSerializer
+    
+    def get_queryset(self):
+        return ProductImage.objects.filter(product_id=self.kwargs['product_pk'])
+
+Then the router
+
+products_router.register('images', views.ProductImageViewSet, basename='product-images')#basename is necessary becuase we overwrote the get method in the ViewSet
+
+Becuase we got product id can not be null becuae when doing what we did before we only apply a image to that product but no product id was there we had to get the context and give it to django.
+
+In views:
+def get_serializer_context(self):
+        return {'product_id': self.kwargs['product_pk']}
+
+In serializer:
+
+def create(self, validated_data):
+        product_id = self.context['product_id']
+        return ProductImage.objects.create(product_id=product_id, **validated_data)
+
+Returning Images from the API:
+
+class ProductViewSet(ModelViewSet):
+    queryset = Product.objects.prefetch_related('images').all()
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        product_id = self.context['product_id']
+        return ProductImage.objects.create(product_id=product_id, **validated_data)
+
+
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image']
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = ['id', 'title', 'description', 'slug', 'inventory',
+                  'unit_price', 'price_with_tax', 'collection', 'images']
+
+Validating Uploaded Files:
+
+In the ProductImage class we have images set to Imagefield and we had to install pillow into our env 
+That means that pillow will validate the incoming images.
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name= 'images')
+    image = models.ImageField(
+        upload_to='store/images',
+        validators=[validate_file_size])
+
+
+Restricting Image Size:
+
+from django.core.exceptions import ValidationError
+
+def validate_file_size(file):
+    max_size_kb = 50
+
+    if file.size > max_size_kb * 1024:
+        raise ValidationError(f'Files cannot be larger than {max_size_kb} KB!')
+
+Restricting File Extentions:
+
+from django.core.validators import MinValueValidator, FileExtensionValidator
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name= 'images')
+    image = models.FileField(
+        upload_to='store/images',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf'])])
+
+
+Setting up the Client App:
+
+I skipped becuase I couldnt get the npm start command to work.
+
+Enabling CORS:
+
+Cross Origin Resource Sharing
+
+Becuase our main app is hosted on port 8000
+And the Client app is hosted on port 8001 
+So then the CORS blocks a request from the 8001 port, thats where we need to change stuff in the backend.
+
+py -m pip install django-cors-headers
+
+'corsheaders', in the list of installed apps
+
+middleware:
+
+'corsheaders.middleware.CorsMiddleware',
+
+CORS config
+
+CORS_ALLOWED_ORGINS = [
+    'http://localhost:8001',
+    'http://127.0.0.1:8001'
+]
+
+Managing images in the Admin:
+
+class ProductImageInLine(admin.TabularInline):
+    model = models.ProductImage
+    readonly_fields = ['thumbnail']
+
+    def thumbnail(self, instance):
+        if instance.image.name != '':
+            return format_html(f'<img src="{instance.img.url}" class="thumbnail"/>')
+        return ""
+
+
+ inline = [ProductImageInLine]
+
+    class Media:
+        css = {
+            'all': ['store/styles.css']
+        }
+
+
+class CustomProductAdmin(ProductAdmin):
+    inlines = [TagInline, ProductImageInLine]
+
+Sending Emails:
+
+Setting up a fake SMTP Sever:
+
+SMTP:
+Simple Main Transfer Protocol
+
+https://github.com/rnwood/smtp4dev/wiki/installation
+
+Docker
+
+There is a course on DOCKER
+
+Cant solve the issue with docker.
+
+Confuguring the Email Backend:
+
+Backends:
+SMTP(default)
+Console -> Emails will apear in the console/terminal window
+File
+Locmem
+Dummy
+
+Settings:
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'#where we are running the server
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_PORT= 2525 #default is 25 but since its a fakeone its 2525
+DEFAULT_FROM_EMAIL = 'from@leonbuy.com'
+
+Sending Emails:
+
+from django.core.mail import send_mass_mail, mail_admins, BadHeaderError
+from django.shortcuts import render
+
+
+def say_hello(request):
+    try:
+        send_mass_mail('subject', 'message', 'info@leon.com', ['bob@leonbuy.com'])
+    except BadHeaderError:
+        pass
+    return render(request, 'hello.html', {'name': 'Mosh'})#return a message email was successfully sent
+
+To email admins:
+
+in settings
+
+ADMINS = [
+    ('Leon', 'leonfortgens@hotmail.se')
+]
+
+in playground views
+
+def say_hello(request):
+    try:
+        mail_admins('subject', 'message', html_message='message')
+    except BadHeaderError:
+        pass
+    return render(request, 'hello.html', {'name': 'Mosh'})#return a message email was successfully sent
+
+
+Attatching Files:
+
+from django.core.mail import EmailMessage, BadHeaderError
+from django.shortcuts import render
+
+
+def say_hello(request):
+    try:
+        message = EmailMessage('subject', 'message', 'from@leonbuy.com', ['selma@leonbuy.com'])
+        message.attach_file('playground/static/images/20470826.jpg')
+        message.send()
+    except BadHeaderError:
+        pass
+    return render(request, 'hello.html', {'name': 'Mosh'})#return a message email was successfully sent
+
+Sending Templated Emails:
+
+py -m pipenv install django-templated-mail
+
+Running Background Tasks:
+
+Introdction to Celery
+
+Long-Running Tasks:
+Processing imgaes and videos
+Generating reports
+Sending emails
+Running maching learning models
+
+So when a user uploads a video we do not want them to wait for the app to compeltley finish rendering their video.
+Therefor its better for the app to send it somewhere else where its rendering and the user can freely do what ever else is on the list. After this
+We can return a notfication to the user when the video is fully rendered.
+
+celeryprojects.org
+		   Queue
+		    ->	Worker1
+Application	    ->	Worker2
+		    ->	Worker3
+
+These workers do not interupt the application
+
+Message Brokers:
+
+	Message Broker
+App A    ---> 		APP B
+So its like a middle man if app b is unavailiable then the message broker will hold onto the message until app b can take it.
+We use messahe brokers to reliably deliver messages between apps.
+
+Brokers:
+Redis (in-memory date store)
+RabbitMQ (real, entrprise-grade broker(costs money))
+
+Redis Cache + Message Broker
+
+Installing Redis
+
+Easiest way is to use it thru docker
+
+docker run -d -p 6379:6379 redis running docker in the detatched mode then specifying the port of our machine and redis envirmoment
+
+After it has been downloaded you can see the container ID:
+
+Status: Downloaded newer image for redis:latest
+4a74b976756829ba9f4f558937e0a72ad8c989e4c49e83524cb39c4b95c2532a
+
+docker ps to check what we are runing
+
+also install redis thru pip install redis if you are in the enviroment
+
+Celery and Windows:
+
+Celery has removed its support to windows so you need to run this thru linux. Follow the downloaded pdf to see how.
+
+Setting Up celery
+
+In a new terminal run pipenv install celery.
+
+New file called celery.py
+
+add the settings for it so celery knows where to look at
+
+add it to the init
+
+celery -A storefront woker --loglevel=info
+
+
+Creating and Executing Tasks:
+
+tasks.py
+
+from time import sleep
+from celery import shared_task
+
+@shared_task
+def notify_customers(message):
+    print('Sending 10k emails...')
+    print(message)
+    sleep(10)
+    print("Emails were successfult sent")
+
+Scheduling Periodic Tasks:
+
+Periodic Tasks:
+Generating periodic reports
+Sending emails
+Running maintenece jobs
+
+Celery Beat:
+Task scheduler
+
+CELERY_BEAT_SCHEDULE = {
+    'notify_customers': {
+        'task': 'playground.tasks.notify_customers',
+        #'schedule': crontab(day_of_week=1, hour=7, minute=30),
+        'args': 'Hello World'
+    }
+}
+
+Monitoring Celery Tasks:
+
+Flower.
+
+pipenv install flower.
+
+localhost:5555
+
+Section 5
+Automated Testing:
+
+
+What is Automated Testing:
+
+Operations:
+Create	--> Admin can only create
+Update	    Anonymous only have some access
+Delete	    And authenticated users can do some stuff
+List
+Retrieve
+
+Write code to test our functions/endpoints if we get the results we want becuase it takes way to long to do it manually if we scale up the project.
+
+Test Behaviours Not Implementations:
+
+They test implementations not behaviours thats why people fail.
+
+We should test how the things behaves not how its implemented becuase implementation could change
+
+Create a collections
+
+POST /collections
+
+Anonymous -> 401
+non-admin -> 403
+Admin && invalid data ->
+Admin && valid data -> 200
+
+Tooling:
+
+Test Frameworks:
+Unittest
+pytest
+	more features
+	tons of plugins
+
+installing pytest:
+
+pip install pytest
+pip install pytest-django
+
+Your first Test:
+
+in file test_collections.py
+
+from rest_framework.test import APIClient
+from rest_framework import status
+
+class TestCreateCollection:
+    def test_if_user_is_anonymous_returns_401(self):
+        #AAA (Arrange, Act, Assert)
+        #Arrange
+
+        #Act
+        client = APIClient()
+        response = client.post('/store/collections', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+Everytything has to start with test as shown thats what the pytest is looking for when running tests.
+
+Running tests:
+
+Created a pytests.ini file in the root folder
+
+DJANGO_SETTINGS_MODULE=storefront.settings
+
+run pytest
+
+How do we know that a test is telling the truth:
+Comment out the thing that is making the things in the test pass:
+
+class CollectionViewSet(ModelViewSet):
+    queryset = Collection.objects.annotate(
+        products_count=Count('products')).all()
+    serializer_class = CollectionSerializer
+    #permission_classes = [IsAdminOrReadOnly]
+This will make it fail since the permission classes is that its testing.
+
+error message is this:
+
+Database access not allowed, use the "django_db" mark
+
+from rest_framework.test import APIClient
+from rest_framework import status
+import pytest
+
+@pytest.mark.django_db
+class TestCreateCollection:
+    def test_if_user_is_anonymous_returns_401(self):
+        #AAA (Arrange, Act, Assert)
+        #Arrange
+
+        #Act
+        client = APIClient()
+        response = client.post('/store/collections/', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+If we apply this decorator to our test it will show us exacly what test failed and where for example it sais 201 == 401 which is not true.
+
+
+pytest -> runs all tests in the projects
+
+pytest store/tests -> this will only run tests in that directory
+pytest store/tests/test_collections.py -> will only run a specific file
+pytest store/tests/test_collections.py::TestCreateCollection -> this will only run tests in this class.
+pytest store/tests/test_collections.py::TestCreateCollection::(method) -> this will only run a single method test.
+pythest -k anonymous -> only runs test with anonymous in their name
+
+Skipping Tests:
+
+@pytest.mark.django_db
+class TestCreateCollection:
+    @pytest.mark.skip
+    def test_if_user_is_anonymous_returns_401(self):
+        #AAA (Arrange, Act, Assert)
+        #Arrange
+
+        #Act
+        client = APIClient()
+        response = client.post('/store/collections/', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+This skipped the test if we want to finish this if we are working on something else.
+
+Continous Testing:
+
+Have tests running in the background at all times, might slow you machine down since you have tests runing at all time.
+But might be nice to have open on a seperate window while coding to see if you have broken stuff.
+
+python -m pip install pytest-watch
+
+run ptw (ptw = pytestwatch)
+
+So when you change stuff around and save it everything you save it will run a test to see f it still is working.
+
+Also always test yourself before sending it to git/deploying.
+
+Running and Debigging Tests in VSCode:
+Same thing just in vscodejust click the testing extention and select root folder.
+
+Authenticating the User:
+
+  def test_if_user_is_not_admin_returns_403(self):
+        #Arrange
+
+        #Act
+        client = APIClient()
+        client.force_authenticate(user={})
+        response = client.post('/store/collections/', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+Single or Multiple Assertions:
+
+
+tests should have a single responisbility
+
+but can have multiple assertions
+
+def test_if_data_is_invalid_returns_400(self):
+        #Arrange
+
+        #Act
+        client = APIClient()
+        client.force_authenticate(user=User(is_staff=True))
+        response = client.post('/store/collections/', {'title': ' '})
+
+        #Assert
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['title'] is not None
+
+
+def test_if_data_is_valid_returns_201(self):
+        #Arrange
+
+        #Act
+        client = APIClient()
+        client.force_authenticate(user=User(is_staff=True))
+        response = client.post('/store/collections/', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['id'] > 0
+
+Fixtures:
+
+Helps remove duplication
+
+such as client = APIClient
+
+in the tests folder add a new file
+conftest.py which is a special file.
+
+in conftest.py
+
+from rest_framework.test import APIClient
+import pytest
+
+@pytest.fixture
+def api_client():
+    return APIClient
+
+this is what the test will change into.
+
+@pytest.mark.django_db
+class TestCreateCollection:
+    def test_if_user_is_anonymous_returns_401(self, api_client):
+        #AAA (Arrange, Act, Assert)
+        #Arrange
+
+        #Act
+        response = api_client.post('/store/collections/', {'title': 'a'})
+
+        #Assert
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+# @pytest.fixture
+# def create_collection(api_client):
+#     api_client.post('/store/collections/')
+
+@pytest.fixture
+def create_collection(api_client):
+    def do_create_collection(collection):
+        return api_client.post('/store/collections/', collection)
+    return do_create_collection
+
+@pytest.fixture
+def authenticate(api_client):
+    def do_authenticate(self, is_staff=False):
+        return api_client.force_authenticate(user=User(is_staff=is_staff))
+    return do_authenticate
+
+Creating Model Instances:
+python -m pip install model_bakery
+
+
+@pytest.mark.django_db
+class TestRetrieveCollection:
+    def test_if_collection_exists_returns_200(self, api_client):
+        #Arrange
+        #Collection.objects.create(title='a')
+        collection = baker.make(Collection)
+        
+        response = api_client.get(f'/store/collections/{collection.id}/')
+
+        assert response.status == status.HTTP_200_OK
+        assert response.status == {
+            'id': collection.id,
+            'title': collection.title
+        }
+
+Preformance Testing:
+
+Why preformance testing:
+Run preformance testing while building.
+
+Identify and fix preformance testing.
+
+This is quite complex so it will only be basics.
+
+Installing Locust:
+
+python -m pip install locust
+
+Creating a Test Script
+Core Use Cases:
+Browse prodicts
+Register,sign in, sign out.
+
+New folder:
+locustfies
+
+new file in that folder:
+browse_products.py
+
+from locust import HttpUser, task, between
+from random import randint
+
+class WevsiteUser(HttpUser):
+    wait_time = between(1, 5)
+
+    #viewing products
+    @task(2)
+    def view_products(self):
+        collection_id = randint(2, 6)
+        self.client.get(f'/store/products/?collection_id={collection_id}', 
+        name='store/products/')
+    
+    #viewing product details
+    @task(4)
+    def view_product(self):
+        product_id = randint(1, 300)
+        self.client.get(f'/store/products({product_id}', name='store/products/:id')
+    
+    #add product to cart
+    @task(1)
+    def add_to_cart(self):
+        product_id = randint(1, 10)
+        self.client.post(f'/store/carts/{self.cart_id}/items/', 
+        name='store/carts/items', json={'product_id': product_id, 'quantity': 10})
+
+        def on_start(self):
+            response = self.client.post('/store/carts/')
+            result = response.json()
+            self.cart_id = result['id']
+
+Running a Test Script:
+locust -f locustfiles/browse_products.py
+
+http://localhost:8089/
+
+Running a proper preformance test:
+
+He just ran a preformance test as before but with more users and took a way a prefetch related to see the differnece in ms.
+
+Preformance Optimization Techniques:
+
+Optimizations:
+Optimize the python code.
+
+Preload related objects:
+Product.objects.select_realted('...')
+Product.objects.prefetach_related('...')
+
+Load only what you need
+Product.objects.only('title') --> only the field you select
+Product.objects.defer('description') --> all but the field you select
+
+Use Values
+Product.objects.values()  --> dict
+Product.objects.values_list() --> list
+
+Count properly:
+Product.objects.count()
+
+
+Bulk create/update
+Product.objects.bulk_create([]) --> If you want to create/update multiple items at once this only sends one instruction instead of for for each update.
+
+Re-Writing the query from skratch:
+
+Tune our database:
+Redesigning our tables
+Adding Indexes
+
+Cache the result:
+not always the best result if its a simple query
+
+Buy more hardware:
+This is getting more expensive.
+
+Profiling with Silk:
+
+Django silk is a profiling tool
+We can see how all functions are executed, what queries get sent and how they get sent.
+
+https://github.com/jazzband/django-silk
+on how to install
+
+http://127.0.0.1:8000/silk/
+
+After changing everything that silk dug up and you think you have a better state in your queries then you need to clear DB for all
+
+Verifying Optimizations:
+
+Use the same parameters, as before to create a fair comparison. After changing.
+
+Stress Testing:
+
+Just testing the upper limit of your program by testing it with alot of user and watching when it will start to break.
+
+Caching:
+
+This is a preformance optimization technique.
+
+What is Caching:
+
+If you have a complex query after it is done loading for the first time you store it in the memory.
+And then in some cases it will be faster to get that query from the memory instead of the DB. Not always.
+
+Caching has an issue.
+If our database data changes this will not update the cache and it will make the cache stale.So you need to set,
+and lenght on how often the cache has to update.
+
+If data is updated frequently in the db its not really worth to cache it.
+
+
+Cache Backends:
+Local memory(default)
+Memcached
+Redis
+Database
+File system
+
+Simulating a Slow API:
+Really useless
+
+Getting Baseline Preformance Benchmark:
+Also useless just same as running apreformance test.
+
+Installind Redis:
+He didnt install redit just opened a terminal window and checked that it was up and running.
+
+Configuring Cahcing:
+python -m pip install django-redis
+
+Add the CACHES settings to the bottom of the settings.
+
+Using the Low-Level Cache API:
+
+if cache.get('httpbin_result') is None:
+         response = request.get('httpbin.org/delay/2')
+         data = response.json()
+         cache.set(key, data)
+     return render(request, 'hello.html', {'name': cache.get.key})
+
+For fdfuncton based view we use Cache page
+and for class based we use method decorator
+
+Verifying Optimizations
+
+Just running the test on locust again and compare cacheing vs no cacheing
+
+Managing Redis Cache content:
+docker exec -it dfeab(first 5 och conainer id) redis-cli
+
+select 2
+
+Selects the 2nd database
+keys* to show all cache in that db
+flushall deletes all cache
+
+Preparing for Production:
+
+Adding the Home Page:
+
+We just created a new folder in the core app
+added a html file
+and added that as the view in the urls of the core app
+then connected that view to the urls in the main storefront app.
+
+
+Adding Static Assets:
+
+Its just HTML check the new templates filder in the core app and te static filder in the core app.
+Its 2 folders in 1 becuase of namespacing thats so files do not overide
+
+
+
+Collecting Static assets:
+
+
+When debug is on, and if there is a static folder it will be copied by django and thrown into one. This does not work in production.
+We have a special command to collect static files from each folder. And for that to work we need to configure a setting.
+
+STATIC_ROOT= os.path.join(BASE_DIR, 'static')
+has to be set.
+And then in the CMD you can use python manage.py collectstatic
+
+This creates a copy of all static files in all different apps in a seperate folder called static.
+It coppies from all apps in the installed apps setting in the settings so if one of the apps are not there it wont be copied.
+
+Also added a gitigore file to ignore all the static files to not get them uploaded.
+
+Serving Static Assets:
+
+No command in django to serve static files. We can only collect them
+
+So we need to download a seperate libvrary for that.
+
+python -m pip install whitenoise
+
+Then go to middleware settings and add the whitenoise middle weare it should be as high up as possible but not over the SecurityMiddleware
+'whitenoise.middleware.WhiteNoiseMiddleware',
+
+Configuring Logging:
+
+Using logging for diagnosing problems:
+
+In the settings define a new setting
+
+Severity of logmessages:
+DEBUG
+INFO
+WARNING
+ERROR
+CRITICAL
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler'
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'general.log'
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO')
+        }
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} ({levelname}) - {name} - {message}',
+            'style': '{' #str.format
+        } 
+    }
+}
+
+Logging:
+
+import logging
+
+logger = logging.getLogger(__name__) #playground.views
+
+
+class HelloView(APIView):
+    def get(self, request):
+        try:
+            logger.info('Calling httpbin')
+            response = requests.get('https://httpbin.org/delay/2')
+            logger.info('Recieved response')
+            data = response.json()
+        except request.ConnectionError:
+            logger.critical('Httpbin is offile')
+        return render(request, 'hello.html', {'name': 'Leon'})
+
+This also creaed a general.log file where we can see all files. REmember to add this file to the gitignore so its not shown, But treat that file as public information, so dont store anything valuable in this.
+
+Also be careful of where you put loggers becuase somethings will just make your code look like shit and hard to read.
+Its making your code more verbose but thats thre price of logging.
+
+So dont throw logging statements everywhere.
+
+Managing Development and Production settings:
+
+Create a new settings folder
+
+move the settings file into the new folder and change it to common.
+
+dev.py -> for development settings
+
+prod.py - for production settings
+ from .common import *
+
+After you have moved everything you need to change all references in all files so earch for DJANGO_SETTINGS_MODULE
+
+
+After that check python manage.py runserver so everything still works and aldo check pytest so nothing is broken
+
+Serving the Application with Gunicorn:
+
+The server in django is slow becuase its made for developing but not production
+
+so install Gunicorn
+
+python -m pip install gunicorn
+
+gunicorn storefront.wsgi
+
+python -m pip install waitress
+
+waitress-serve --listen=*:8000 myapp.wsgi:application
+
+Deployment:
+
+Hosting Options:
+
+Virtual Private Server(VPS)
+Platform-as-a-Serviace(PaaS)
+	-Heroku
+	-Digital Ocean
+	-MS Azure
+	-Google Cloud
+
+Addin project to Git.
+
+git init
+
+git add .
+
+git commit -m "Inital commit"
+
+git log --oneline
+
+Gettings Started with Heroku:
+
+
+heroku.com
+
+create an account
+
+Then download heroku CLI
+
+check thats it properly installed by running heroku --version
+
+heroku login
+
+Creating a Heroku App:
+
+heroku create leonbuy-prod(production enviroment)
+
+
+this creates a app and we get a link. Add this link to allowed hosts in prod.py
+
+ALLOWED_HOSTS = ['leonbuy-prod.herokuapp.com']
+
+Setting Enviroment Variables:
+
+Djecrety to generate a secret key.
+
+heroku config:set SECREY_KEY='m^_ra9uobomcxe%+4_az)tqe)tad#i5toag^q((y3lwi68*hle' paste in the get generated from DJcrety
+
+
+50ba+(sitg#@zlahqiugfejf_+0cqc=_oy%+@u$#von$nua6vq
+
+heroku config:set DJANGO_SETTINGS_MODULE=storefront.settings.prod
+
+To set the default settings from the dev version that we have in the files to the production version in heroku
+
+Creating Procfile:
+
+Create a file in the root folder called Procfile
+
+release: python manage.py migrate --> automation migrations
+web: waitress-serve --listen=*:8000 myapp.wsgi:application what should be run first when we go live
+worker: --> I could not set up celery becuase it was on linux so i skilled workers
+
+Provisioning a MySQL Database:
+
+Go to dashboard.heruko.com/apps
+
+Configure add ons and add ClearDB MySQL
+
+heroku config
+
+Here you can see all you configurations.
+
+Copy the entire mysql link up to the ? but dont include it
+
+mysql://bbbabc76c1b869:3550c6ef@us-cdbr-east-06.cleardb.net/heroku_50d775290ee876d
+
+heroku config:set DATABASE_URL=mysql://bbbabc76c1b869:3550c6ef@us-cdbr-east-06.cleardb.net/heroku_50d775290ee876d
+
+Go to the dev.py file
+
+python -m pipenv install dj-database-url
+
+and copy this section:
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'storefront3',
+        'HOST': 'localhost',
+        'USER': 'root',
+        'PASSWORD': 'Morrisochleon123!'
+    }
+}
+
+Provisioning a Redis Instance and SMTP server,
+
+I did not follow these becuase I have not set these up.
+
+
+Deploying the Application:
+
+git add .
+
+git remote -vv
+
+git push heroku master
+
+herkoku run bash to get a bash terminal
+
+heroku run python manage.py createsuperuser to create a super user.
+
+ 
+heroku open then here you can use all our endpoints
+
+Populating the database:
+
+heroku ru python manage.py seed_db to run the custom command.
+
+if we want to manueally connect our app to the database we do heroku config:get DATABASE_URL
+
+in datagrip select new data source,
+In onnection type select URL only and replace the url to the url.
+
+Dockerizing the app:
+
+Services:
+MySQL
+REdis
+Celery
+Smtp4Dev
+Flower
+
+So everytime we want to open this we need to have a terminal for each service. And also when someone new joins the project they need to install all these configs.
+Thats where docker comes in and helps so all apps are the same from developemnt to test to production on all devices and that everything is run properly.
+
+
+In recources 3 check the last file.
+Take the docker course.
+Drop these 3 files:
+Dockerfile
+docker-entrypoint.sh
+docker-compose.ymi:
+
+We define all the services that our app needs, like web service that runs the web services.
+also redis, smtp4d, mysql and more.
+
+Change some stuff in the dev.py file
+
+host wil not be localhost it will be 
+
+mysql
+
+celery broker will also change localhost to redis
+
+same as redis on our cache
+email host will be smtp4dev
+
+DEBUG_TOOLBAR_CONFIG = {
+	'SHOW_TOOLBAR_CALLBACK': lambda request: True
+}
+
+After all these changes we need to stop MySQL
+
+and stop the server.
+
+Stop all the terminals that are taking up a port.
+
+docker-compose up --build --> to start the app.
+
+ctrl C to stop these tasks
+
+docker-compose up -d --build --> now all services are running in the background so we dont see the logs.
+
+To see logs for specific apps run
+
+docker-compose logs web --> shows logs for web
+
+docker-compose run web python manage.py seed_db(createsuperuser)
+
+We can now start all apps with docker-cmpose up -d --build isntad of a window for each service.
+
+docker-compose down to shut all down
+
+
+In dev.py file
+
+import os
+from .common import *
+
+DEBUG = True
+
+# SECURITY WARNING: keep the secret key used in production secret!
+
+SECRET_KEY = 'django-insecure-hs6j037urx6iav+7#10%-vu4l4f5@@-1_zo)oft4g7$vf2$jmp'
+
+
+
+# Database
+# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'storefront3',
+        'HOST': 'localhost',
+        'USER': 'root',
+        'PASSWORD': 'Morrisochleon123!'
+    }
+}
+
+
+
+
+
+
+

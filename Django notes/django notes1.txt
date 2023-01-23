@@ -1,0 +1,747 @@
+HTTP Good prerequisites for Django:
+
+Python
+    Basics, Classes, Inheritance
+
+Relational Databases:
+    Tables, Columns, Keys, Relationships
+
+Tip 1
+Watch the entire video from beginning to the end
+
+Tip 2
+Take Notes
+
+Tip 3
+Complete all excercies
+
+Django Fundamentals:
+
+Introduction
+Fundamentals of web development
+Setting up the development enviroment
+Your first Django project
+2 essentiial debugging techniques for debugging django projects
+
+What is Django
+Batteries included framwork, it has a lot of things included, and is the most popular framework
+
+Django features:
+The admin site(managing data)
+Object relationam mapper(ORM, less SQL)
+Authentication(Identifying users)
+Caching data and more
+
+Preformance isnt everything, maturity, stability, difficulty and community are huge points why django is Good
+Huge community around the framework
+
+Django has alot of features but you dont need to use or learn all of them.
+
+Basics:
+
+URL = Uniform Recource Locator(page, image and more)
+
+HTTP = Hyperrext Transfer Protocol
+
+Client enters our URL. That makes a request of our data base that a user wants to see the home page.
+And the database responds by giving the database.
+
+For each click on the website this sends a HTTP request to the server and the server gives a http response.
+
+An option is to generete the requested page and return it (HTML)
+The other option to return the data and the data only and have the client generate the page.
+
+Application is more scalable and can serve more users if it only returns data and not generating a full page.
+
+Front end uses to take this data and let the user generate the page:
+React
+Angular
+Vue
+
+Server: 
+Django
+
+Server is a gateway to the data. Provide endpoints that the client can talk to.
+/products
+/orders
+
+API = Application programming interface (Buttons on a remote control is an example)
+
+Set up development enviroment:
+
+cd desktop
+
+mkdir "name of folder"
+
+cd "name of folder"
+
+py -m to run the module as below
+
+py -m pipenv install django
+
+py -m pipenv shell
+
+#install virtual enviroment 'py -m pip install --user virtualenv'
+
+#create virtual enviroment 'python -m venv env'
+#activate virtul enviroment .\env\Scripts\activate
+#install sql alchemy 'pip install django'
+
+
+django-admin start project ""to start a new project.
+
+that creates a directory and inside that directory is another directory
+
+django-admin startproject . (This starts a project inside the current folder instead if creating one and then making the project in that one which makes 3 folders)
+
+manage.py is a wrapper around django admin. Manage takes the settings of project in account
+
+If you run python manage.py runserver that will start a server with the default port of 8000
+if you want to configure the port just enter it after the runserver command
+
+Click on the ip adress link to see if the installation is successfull
+
+Apps:
+
+Each Django project is built up by several apps with different functions
+
+python manage.py startapp "name" this makes a new folder in the project which is a part of the project an app
+
+Migrations = Generating database tables
+Admin module = how the admin interface is gonna look like
+apps.py = configure this app
+models = models classes for this app models classes are used to pull out data from the database and present to the user
+test is where we use unit tests.
+
+All this is a request handler
+
+Everytime you make a new app you need to add it to the settings.py under installed app bu just entering the 'name'
+
+Views:
+
+Notes takes across the different files
+
+Debugging didnt want to work becuase it kept crashinh the lauch.json file
+
+django debug toolbar: https://django-debug-toolbar.readthedocs.io/en/latest/
+
+while virtual enviroment activated pip install django-debug-toolbar
+add the debug toolbar to the settings installed apps file
+
+Models:
+Introductions to data modeling
+Building an e-commerce data model
+Organizing models in apps
+Coding model classes
+
+Relationsips can be one to one
+one to many
+many to many
+
+Product  --> Collection
+title 	title
+description	
+price
+inventory
+
+Each app should do 1 thing and do it well to not bloat project up
+
+Monolith is making it like a big fat
+
+
+Store:
+Product
+Collection
+Customer
+Cart
+CartItem
+Order
+OrderItem
+
+Tags
+Tag
+TaggedItem
+
+Self Contained
+Zero Coupling
+
+Minimal coupling
+High Cohesion(Focus)
+
+Database engines
+SQLite (For very small not so serrious projects)
+PostgreSQL(1 of the most common database)
+MySQL(1 of the most common database)
+MariaDB
+Oracle
+The rest are for a higher standard db 
+
+#migrations
+
+Create or update the database tables depending on the models we have
+
+python manage.py makemigrations
+
+run this every now and then to update your database
+
+if you change the name on the migrations file remember to rename all the dependencies in previous files so it matches the new name
+You can then view it all thru the sqlite extentions on VSCO
+Or use DBBrowser(Sqlite) to see all migrations and tables
+
+python manage.py sqlmigrate store 0003 |3rd migration of the store app
+
+if we want to undo an migration. we can just delete what we did and then migrate again
+
+If we want to completley revert the entire migration and not just a part of it 
+in terminal
+
+and run python manage.py store 0003 that unapplies the 0004 migration for the store app
+
+then if you delete the migrations file you do not want remove all the code and then migrate again
+
+git reset --hard HEAD~1 this revert the last commit to git
+
+Installing MySQL
+
+https://www.mysql.com/
+
+https://dev.mysql.com/downloads/
+
+then installing DATAGRIP as the GUI representation.
+You can also user the existing free one in MYSQL but at the moment I am using DATAGRIP since its free for 30 days.
+
+DATAGRIP CODE:
+
+
+connect the MySQL database to the django project by py -m install mysqlclient in VSCODE
+
+
+Generating dummy data thy mackaroo 
+
+DJANGO ORM
+
+INTRO to Django ORM
+Querying and manipulating data
+Filtering data
+Sorting data
+Grouping data
+
+Object relational mappers
+Pretty much writing SQL code for us from our python code. 
+If the problem is to comlex we might have to manually write our SQL
+
+ORM
+Reduce complecity in code
+Make the code more understandable
+Help us get more done in less time
+
+Django migrations are a part of the ORM it did all the tabled for us
+
+def say_hello(request):
+    #query_set = Product.objects.all() #all models has an attribute (objects) returns a manager interface with alot of functions
+    
+try:
+    product = Product.objects.get(pk=0)#primary key 1 | get returns an object 
+except ObjectDoesNotExist:
+
+    #for product in query_set: #query set is evaluated when it is ittirated over
+     #   print(product)
+    
+#list(query_set)#or when converted to a list
+
+#query_set[0] # or when we take out the first element or sliced [1:5]
+
+product = Product.objects.filter(pk=0).first()#filter returns a query set then return the first() one in the query set
+product = Product.objects.filter(pk=0).exists()#filter returns a query set then return if it exists
+product = Product.objects.filter(unit_price__gt=20) # gt = greater than look u queryset api referance in the docs to fins all like less than sick you cant use logical operators in here
+product = Product.objects.filter(unit_price__range=(20, 30)) # range is returning all products with the price between 20 and 30
+queryset = Product.objects.filter(unit_price__range=(20, 30)) # range is returning all products with the price between 20 and 30
+    return render(request, 'hello.html', {'name': 'Leon', 'products': list(queryset)})
+
+queryset = Product.objects.filter(collection__id__range=(1, 2, 3))#finds all products in collection nr 1 2 and 3
+queryset = Product.objects.filter(title__icontains='coffee') # incasesensitive look up of coffe. other lookup methods as icontains is  startswith endswith and more
+queryset = Product.objects.filter(last_update__year=2021) #takes the last word model row and looks for that year it was last updated
+queryset = Product.objects.filter(description_isnull=True)# looks for all the items with no description
+
+
+Challange
+
+queryset = Customer.objects.filter(email__icontains='.com') | find customers with an email that contains .com
+queryset = Collection.objects.filter(featured_product__isnull=True) | finds a collection with no featured products
+queryset = Product.objects.filter(inventory__lt=10) | finds a product with an inventory with less that 10 in quantity
+queryset = Order.objects.filter(customer_id=1) |all order that customer with id 1 has placed
+queryset = OrderItem.objects.filter(product__collection__id=3) | Order items for products in collection 3
+
+Advanced filtering
+queryset = Product.objects.filter(inventory__lt=10).filter(unit_price__lt=20) inventory less than 10 and prince less than 20
+queryset = Product.objects.filter(Q(inventory__lt=10) | Q(unit_price__lt=20)) inventory less that 10 or price less than 20
+queryset = Product.objects.filter(Q(inventory__lt=10) & ~Q(unit_price__lt=20)) inventory less that 10 and price not less than 20
+
+Referencing fields using F Objects
+
+queryset = Product.objects.filter(inventory=F('unit_price'))# says that wher inventory = the field Unit_price
+queryset = Product.objects.filter(inventory=F('collection__id'))# says that wher inventory = the collection id
+
+
+Sorting data
+
+queryset = Product.objects.order_by('-title')#sorted all products in alphabetical order
+queryset = Product.objects.order_by('-title')#sorted all products in decending order
+queryset = Product.objects.order_by('unit_price', '-title')#sorted all products by cheapest to most expensive and if same price range deceding alphabetically
+queryset = Product.objects.order_by('unit_price', '-title').reverse()#reverses everything so price from most expensive to cheapest and then name in alphabetical
+product = Product.objects.order_by('unit_price')[0]#this is not a query set anymore only a product since we are accessing one item from it so rename it to product
+product = Product.objects.earliest('unit_price')
+product = Product.objects.latest('unit_price')
+
+Limiting results
+
+queryset = Product.objects.all()[:5] #returns a slice of the first 5 products
+queryset = Product.objects.all()[5:10] #returns a slice of products at index 5, 6, 7, 8, 9
+
+Selecting Fields to query
+
+queryset = Product.objects.values('id', 'title', 'collection__title') #in this method when getting the values we get them as a dictionary
+queryset = Product.objects.values('id', 'title', 'collection__title') #in this method when getting the values we get them as a tuples
+queryset = Product.objects.filter(id__in=OrderItem.objects.values('product__id').distinct()).order_by('title')
+
+Deferring fields
+
+queryset = Product.objects.only('id', 'title')#with the only method we will get instances of the product call but in values we get dictionaries. Be carful as this can send double the amout of queries since it will read it twice
+queryset = Product.objects.defer('description')#oposite of only since it will put all fields execpt description in this case. Same behaviour as only so if you have a itteration/loop over this it will read it twice
+
+
+Selecting Related Objects
+
+select_related is used when other end of the relationship has 1 instance
+prefetch_related is used when the other end of the relatioship has many objects
+
+queryset = Product.objects.select_related('collection').all()# select related will make django create a join between our tables | used on collection since every product is only a part of 1 collection
+queryset = Product.objects.prefetch_related('promotions').all() #used when we want to preload something that has many connections becuase a product can have several promotions
+queryset = Product.objects.prefetch_related('promotions').select_related('collection').all() # we can combine them becuase they are a query set. So we can chain them togehter to build a complex query
+
+queryset = Order.objects.select_related('customer').prefetch_related('orderitem_set__product').order_by('-placed_at')[:5]First use the order class and select_related set to customer becuase an order can only have 1 customer. The prefetch the order to orderitem_set__products becuase an order can have several items. Then order by the time placed in decending order and then the first 5
+
+Aggregating Exercises
+
+result = Product.objects.aggregate(Count('id')) #proper way is to do the id or primary keys. Here we get a dictionary of how many product ids we have
+result = Product.objects.aggregate(count=Count('id'), min_price=Min('unit_price'))#count=Count is to set the name of the Count function which is optional, then set another name of min_price to the Min function which checks the lowest/minimum price of our unit price column
+
+Aggregating challange:
+
+result = Order.objects.aggregate(count=Count('id'))# checks how many orders we have
+result = OrderItem.objects.filter(product__id=1).aggregate(units_sold=Sum('quantity')) # Check how many units of product 1 we sold
+result = Order.objects.filter(customer__id=1).aggregate(count=Count('id')) #how many order customer 1 has placed
+
+result = Product.objects.filter(collection__id=3).aggregate(
+					min=Min('unit_price'), 
+					max=Max('unit_price'), 
+					avg=Avg('unit_price')) #min max and avg price of products in collection 3
+
+Annotating Objects
+
+When using annotate you need to use a expression object
+Expressions:
+Value: for representing simple values like number boolean string
+F: refrebce field in the same or another table f object = expression object
+Func: for calling db functions. DB have several functions on how to manipulate data
+Aggregate: Base class for all aggregate functions
+
+queryset = Customer.objects.annotate(is_new=Value(True))
+queryset = Customer.objects.annotate(new_id=F('id'))
+
+Calling DB Functions
+
+Google django database functions
+
+queryset = Customer.objects.annotate(full_name=Func(F('first_name'), Value(' '), F('last_name'), function='CONCAT'))
+    
+queryset = Customer.objects.annotate(full_name=Concat('first_name', Value(' '), 'last_name'))
+
+
+Grouping Data
+
+look into left joins SQL
+queryset = Customer.objects.annotate(orders_count=Count('order'))
+
+
+Working with Expression Wrappers
+
+discounted_price = ExpressionWrapper(F('unit_price') * 0.8, output_field=DecimalField())
+
+queryset = Product.objects.annotate(
+        discounted_price=discounted_price
+    )
+
+queryset = Customer.objects.annotate(last_order_id=Max('order__id')) Customers and their last order
+queryset = Collection.objects.annotate(product_count=Count('product'))Collections and count of their products
+queryset = Customer.objects.annotate(orders_count=Count('order')).filter(orders_count__gt=5)customers with more than 5 orders 
+
+queryset = Customer.objects.annotate(
+        total_spent=Sum(
+            F('order__orderitem__unit_price')*
+            F('order__orderitem__quantity'))) Customers and the total amout theve spent
+
+queryset = Customer.objects.annotate(
+        total_takes=Sum(
+            F('order__orderitem__unit_price')*
+            F('order__orderitem__quantity'))).order_by('-total_sales')[:5]
+top 5 best seeling products and their total sales
+
+Quering generic relationships
+
+
+content_type = ContentType.objects.get_for_model(Product)
+
+queryset = TaggedItem.objects\
+    .select_related('tag')\
+    .filter(
+        content_type=content_type,
+        object_id=1
+    )
+
+Custom managers
+Instead of all code we added a new class and a new function to the models in tags.
+This TaggedItemManager has the get_tags_for function
+
+class TaggedItemManager(models.Manager):
+    def get_tags_for(self, obj_type, obj_id):
+        content_type = ContentType.objects.get_for_model(obj_type)
+    
+        return TaggedItem.objects\
+        .select_related('tag')\
+        .filter(
+            content_type=content_type,
+            object_id=obj_id
+        )
+This makes this code reusable instead of re writing it every time
+
+this is whats left in playground
+TaggedItem.objects.get_tags_for(Product, 1)
+
+Creating Objects
+
+collection = Collection()
+collection.title = 'Video Games'
+collection.featured_product = Product(pk=1)
+collection.save()
+
+Updating objects
+
+collection = Collection(pk=11)#becuase the video games id is 11
+collection.title = 'Games'
+collection.featured_product = None
+collection.save() Compare to the creating objects section
+
+collection = Collection.objects.get(pk=11)#becuase the video games id is 11 If you use the get method you get all columns in this table and can modify them freely
+collection.title = 'Games'
+collection.featured_product = None
+collection.save()
+
+Collection.objects.filter(pk=11).update(featured_products=None)
+
+Deleting objects
+
+collection = Collection(pk=11)
+collection.delete()
+
+Collection.objects.filter(id__gt=5).delete()
+
+Challange regarding objects
+
+Creating a shopping cart with an item
+
+cart = Cart()
+cart.save()
+
+item1 = CartItem()
+item1.cart = cart
+item1.product_id = 1
+item1.quantity = 1
+item1.save()
+
+Update the quantity of an item in a shopping cart
+
+item1 = CartItem.objects.get(pk=1)
+item1.quantity = 2
+item1.save()
+
+Removing from cart
+
+cart = Cart(pk=1)
+cart.delete()
+
+Since cascading is enabled in the relatinship between cart and its items, deleting a cart automatically
+causes deletion of its items. So we dont need to delete each item individually.
+
+
+Transactions
+
+#@transaction.atomic() #this is a decorator of a transaction, if 1 part of the code fails all fails and nothing will be added to the db to prevent inconcistency
+def say_hello(request):
+    
+    #dummy code to show you can wrap inside the function aswell to have more control
+    
+    with transaction.atomic():
+        order = Order()
+        order.customer_id=1
+        order.save()
+
+        item = OrderItem()
+        item.order = order
+        item.product_id = 1
+        item.quantity = 1
+        item.unit_price = 10
+        item.save()
+
+Executing Raw SQL Queries
+
+queryset = Product.objects.raw('SELECT id, title FROM store_product') #Django orm can do this for us only do this if the queries like filters annotations are way to complicated or a raw SQL query just looks cleaner
+cursor = connection.cursor()
+cursor.execute('INSERT')#you can write any sql code here no limits
+cursor.close()#to release the allocated rescources. correct way to use a cursor is with a with block since it always closes it
+
+with connection.cursor as cursor:
+    cursor.callproc('get_customers', [1, 2, 'a'])
+
+
+Admin Site
+
+In this section:
+Customizing the admin interface
+Adding computed columns
+Loading related objects
+Adding search filter
+Implementing custom actions
+Adding data validation
+
+Setting up the admin site
+
+instead of for example /playground/hello/
+
+http://127.0.0.1:8000/admin use /admin instead to get to the login
+
+to create a login for this page
+
+python manage.py createsuperuser in a new terminal window
+
+this user info will be temporarly stored in the django sessions table and the users will be stored in the auth category
+
+python manage.py changepassword admin | this will then ask what password we want to change it to if we forget our password
+
+#customization for admin site
+admin.site.site_header = 'Storefront Admin' #title
+admin.site.index_title = 'Admin' #smaller text under admin
+
+Registering models
+
+In one of the appes in this project its called store go to admin.py
+
+admin.site.register(models.Collection)# registring the collection
+admin.site.register(models.Product) #registering the product class
+
+ def __str__(self) -> str:
+        return self.title #this is made so instead of it saying collection 1 2 3 in the admin site they are represented by their string titles
+
+
+    class Meta:
+        ordering = ['title'] #look into Meta more this is a way to order the titles so it looks good
+
+Customizing the List Page
+
+
+@admin.register(models.Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ['first_name', 'last_name', 'membership']
+    list_editable = ['membership']
+    ordering = ['first_name', 'last_name']
+    list_per_page = 10
+
+Adding Computed Columns
+
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['title', 'unit_price', 'inventory_status'] #this does the same as registering the Product model but here you can also customize the fields, so now we have a unit price field aswell 
+    list_editable = ['unit_price'] #this makes the fields selected editable and then there is a save button at the bottom of the page
+    list_per_page = 10 #this makes 10 products on each page
+    #google django modeladmin then go to model admin options for a complete list of all functions you acn use to customize the page
+
+    @admin.display(ordering='inventory') #to set how it is going to be ordered to the number of inventory becuase it django dosent know how to sort low or OK
+    def inventory_status(self, product):
+        if product.inventory < 10:
+            return 'LOW'
+        else:
+            return 'OK'
+
+Selecing related objects
+
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['title', 'unit_price', 'inventory_status', 'collection_title'] #this does the same as registering the Product model but here you can also customize the fields, so now we have a unit price field aswell 
+    list_editable = ['unit_price'] #this makes the fields selected editable and then there is a save button at the bottom of the page
+    list_per_page = 10 #this makes 10 products on each page
+    #google django modeladmin then go to model admin options for a complete list of all functions you acn use to customize the page
+    list_select_related = ['collection'] #preloading the colelction to get less queries
+
+    def collection_title(self, product): #becuase we are redering a buch of products
+        return product.collection.title
+
+Overriding the BaseQuerySet
+
+
+@admin.register(models.Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ['title', 'products_count']
+
+    @admin.display(ordering='products_count')
+    def products_count(self, collection):
+        return collection.products_count
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            products_count=Count('product')
+        )
+
+Providing links to other pages
+
+@admin.register(models.Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ['title', 'products_count']
+
+    @admin.display(ordering='products_count')
+    def products_count(self, collection):
+        url = (
+            reverse('admin:store_product_changelist') 
+            + '?'
+            + urlencode({
+                'collection__id': str(collection.id)
+            }))
+        return format_html('<a href="{}">{}</a>', url, collection.products_count)
+
+Adding search to the list page
+
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ['first_name', 'last_name', 'membership', 'orders']
+    list_editable = ['membership']
+    list_per_page = 10
+    ordering = ['first_name', 'last_name']
+    search_fields = ['first_name__istartswith', 'last_name__istartswith'] #this adds a search bar where you search for case insensitive first or last names
+
+Adding Filtering to the list page
+
+class InventoryFilter(admin.SimpleListFilter):
+    title = 'Inventory' #how it looks in the filter
+    parameter_name = 'inventory' #how it looks in the queries
+
+    def lookups(self, request, model_admin):
+        return [
+            ('<10', 'Low')
+        ]
+    
+    def queryset(self, request, queryset):
+        if self.value() == 10: 
+            return queryset.filter(inventory__lt=10)
+
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['title', 'unit_price', 'inventory_status', 'collection_title'] #this does the same as registering the Product model but here you can also customize the fields, so now we have a unit price field aswell 
+    list_editable = ['unit_price'] #this makes the fields selected editable and then there is a save button at the bottom of the page
+    list_filter = ['collection', 'last_update', InventoryFilter]
+
+
+Creating Custom Actions
+
+
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    actions = ['clear_inventory']
+
+    @admin.action(description='Clear inventory')
+    def clear_inventory(self, request, queryset):
+        updated_count = queryset.update(inventory=0)
+        self.message_user(
+            request,
+            f'{updated_count} products were successfully updated!',
+            messages.ERROR
+        )
+
+Customizing Forms
+
+fields #what fields you have to fill in the form
+exclude #what should not be shown in the form
+readonly_fields # fields that you can only read but not add to
+
+@admin.register(models.Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    search_fields = ['first_name']
+    
+        
+
+@admin.register(models.Order)
+class OrderAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['customer']
+
+Adding Data Validation
+
+Google django validators
+
+unit_price = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        validators=[MinValueValidator(1)])
+    inventory = models.IntegerField(validators=[MinValueValidator(1)])
+
+Editing Children Using Inlines
+
+class OrderItemInline(admin.TabularInline):
+    autocomplete_fields = ['product']
+    min_num = 1
+    max_num = 10
+    model = models.OrderItem
+    extra = False
+
+@admin.register(models.Order)
+class OrderAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['customer']
+    inlines = [OrderItemInline]
+    list_display = ['id', 'placed_at', 'customer']
+
+
+Using Generic Relations
+
+store.admin.py
+
+class TagInLine(GenericTabularInline):
+    autocomplete_fields = ['tag']
+    model = TaggedItem
+
+
+@admin.register(models.Product)
+class ProductAdmin(admin.ModelAdmin):
+    inlines = [TagInLine]
+    autocomplete_fields = ['collection']
+    search_fields = ['product']
+
+tags.admin.py
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    search_fields = ['label']
+
+Extending Pluggable Apps
+
+Problem with previous code is that the 2 apps are depending on eachother when they shouldnt know about eachother.
+The best way to do it is to create a new app that connects them. store_custom  app shows this in the code
+
+Whats next:
+Building RESTful APIs
+Authentication and authorization
+Logging
+Caching
+Sending e-mails
+Deployment
+
+
+
+
+    
+
+
+
